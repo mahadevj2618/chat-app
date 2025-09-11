@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css"
+      crossorigin="anonymous"
+    />
+    <title>mChat Admin 💼</title>
+  </head>
+  <body
+    class="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white flex flex-col items-center justify-center min-h-screen p-3 sm:p-6"
+  >
+    <!-- App Title -->
+    <h1
+      class="text-4xl sm:text-5xl font-extrabold mb-6 text-center bg-gradient-to-r from-red-400 to-yellow-500 bg-clip-text text-transparent drop-shadow-lg"
+    >
+      mChat Admin 💼
+    </h1>
+
+    <!-- Wrapper: Sidebar + Chat + Admin Panel -->
+    <div
+      class="flex w-full sm:w-[90%] md:w-2/3 lg:w-3/4 xl:w-2/3 h-[80vh] bg-gray-850/80 backdrop-blur-md shadow-2xl rounded-2xl border border-gray-700/50 overflow-hidden"
+    >
+      <!-- Sidebar with users -->
+      <div class="w-1/4 border-r border-gray-700/50 p-4 overflow-y-auto">
+        <h3 class="text-lg font-semibold text-red-400 mb-3">👥 Users</h3>
+        <ul id="admin-users-list" class="space-y-2 text-sm sm:text-base">
+          <!-- filled dynamically with admin controls -->
+        </ul>
+      </div>
+
+      <!-- Chat Container -->
+      <div class="flex flex-col flex-1">
+        <!-- Header -->
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-b border-gray-700/40 bg-gradient-to-r from-gray-800/80 to-gray-900/80 backdrop-blur-md shadow-md"
+        >
+          <!-- Admin Info -->
+          <div class="flex items-center gap-3 flex-1">
+            <span class="text-red-400 text-xl"><i class="fas fa-user-shield"></i></span>
+            <input
+              type="text"
+              id="admin-name-input"
+              class="flex-1 bg-gray-900/30 border border-gray-600/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 px-3 py-2 text-sm sm:text-base placeholder-gray-400 text-gray-200 transition"
+              value="admin"
+              readonly
+            />
+          </div>
+
+          <!-- Online counter + Logout -->
+          <div class="flex items-center gap-3">
+            <h3
+              id="admin-online"
+              class="text-green-400 text-sm sm:text-base font-semibold flex items-center gap-2"
+            >
+              <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+              <!-- Online users count -->
+            </h3>
+            <button id="logout-btn" class="text-sm bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded-lg">
+              Logout
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat & Admin Panel -->
+        <div class="flex flex-1 overflow-hidden">
+          <!-- Messages -->
+          <ul
+            id="admin-message-container"
+            class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+          >
+            <!-- Messages go here -->
+          </ul>
+
+          <!-- Admin Controls -->
+          <div class="w-1/4 border-l border-gray-700/50 p-4 overflow-y-auto bg-gray-900/40">
+            <h3 class="text-lg font-semibold text-yellow-400 mb-3">⚙️ Admin Controls</h3>
+            <ul class="space-y-2 text-sm sm:text-base">
+              <li><button id="kick-user" class="w-full bg-red-600 hover:bg-red-500 px-3 py-2 rounded-md">Kick User</button></li>
+              <li><button id="mute-user" class="w-full bg-yellow-600 hover:bg-yellow-500 px-3 py-2 rounded-md">Mute User</button></li>
+              <li><button id="broadcast-msg" class="w-full bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded-md">Broadcast Message</button></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Input Form -->
+        <form
+          id="admin-message-form"
+          class="flex items-center border-t border-gray-700/60 p-3 bg-gray-800/60"
+        >
+          <input
+            type="text"
+            name="message"
+            id="admin-message-input"
+            class="flex-1 bg-gray-900/60 px-4 py-2 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base placeholder-gray-500"
+            placeholder="Type a message..."
+          />
+          <button
+            type="submit"
+            class="ml-3 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 px-4 py-2 rounded-xl flex items-center gap-2 text-sm sm:text-base font-medium transition-all duration-200 shadow-md"
+          >
+            Send <i class="fas fa-paper-plane"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+     <script>
+(async () => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    window.location.href = "/login";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/auth/verify", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    });
+
+    if (!res.ok) throw new Error("Token invalid");
+
+    const data = await res.json();
+
+    // ✅ Only allow admins
+    if (!data.user || data.user.admin !== 1) {
+      alert("Access denied: Admins only!");
+      window.location.href = "/mchat"; // normal user chat
+    }
+  } catch (err) {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+  }
+})();
+
+// logout handler
+document.getElementById('logout-btn')?.addEventListener('click', () => {
+  localStorage.removeItem('token')
+  window.location.href = '/login'
+})
+</script>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/min/moment.min.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>

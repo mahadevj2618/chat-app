@@ -1,4 +1,4 @@
-const socket = io()
+const socket = io('/mchat')
 
 const c_total = document.getElementById('onlineChat')
 const messageContainer = document.getElementById('message-container')
@@ -15,16 +15,35 @@ socket.on('clients-total', (data) => {
   c_total.innerText = `🟢 Online: ${data}`
 })
 
+// get list of online users (by display name)
+socket.on('online-users', (names) => {
+  // update users list to reflect online/green only for those names
+  if (!Array.isArray(names)) return
+  const items = usersList.querySelectorAll('li')
+  items.forEach((li) => {
+    const name = li.textContent.trim()
+    const dot = li.querySelector('span')
+    if (dot) {
+      dot.className = `w-2 h-2 rounded-full ${names.includes(name) ? 'bg-green-400' : 'bg-gray-400'}`
+    }
+  })
+})
+
 function sendMessage() {
   if (!messageInput.value.trim()) return // prevent empty messages
 
+  const dmActive = currentDM && currentDM.roomId
   const data = {
-    name: nameInput.value,
+    name: dmActive ? `[DM to ${currentDM.with}] ${nameInput.value}` : nameInput.value,
     message: messageInput.value,
     dataTime: new Date(),
   }
 
-  socket.emit('message', data)
+  if (dmActive) {
+    socket.emit('dm-message', { roomId: currentDM.roomId, message: messageInput.value, fromName: nameInput.value, dataTime: data.dataTime })
+  } else {
+    socket.emit('message', data)
+  }
   addMessageToUI(true, data)
   messageInput.value = ''
 }
@@ -96,3 +115,71 @@ function clearFeedback() {
 }
 
 
+
+const usersList = document.getElementById('users-list')
+let currentDM = null // { roomId, with }
+
+// fetch all users on load
+async function fetchUsers() {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch('/api/auth/user', {
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+    })
+    const data = await res.json()
+    if (data.status === 'success') {
+      renderUsers(data.data)
+    }
+  } catch (err) {
+    console.error('Error fetching users:', err)
+  }
+}
+
+function renderUsers(users) {
+  usersList.innerHTML = ''
+  users.forEach((user) => {
+    const li = document.createElement('li')
+    li.className = 'flex items-center gap-2 justify-between'
+    li.innerHTML = `<span class="flex items-center gap-2"><span class="w-2 h-2 bg-gray-400 rounded-full"></span> ${user.user_name}</span>
+    <button class="text-xs bg-blue-600 text-white px-2 py-1 rounded dm-btn">DM</button>`
+    li.querySelector('.dm-btn').addEventListener('click', () => {
+      const toName = user.user_name
+      if (!toName || toName === nameInput.value) return
+      socket.emit('dm-request', { toName })
+      alert(`DM request sent to ${toName}`)
+    })
+    usersList.appendChild(li)
+  })
+}
+
+// call it once when page loads
+fetchUsers()
+
+// announce my presence with name changes
+function announceJoin() {
+  const name = nameInput.value || 'anonymous'
+  socket.emit('join', { name })
+}
+nameInput.addEventListener('change', announceJoin)
+nameInput.addEventListener('blur', announceJoin)
+// initial announce after short delay to ensure socket is ready
+setTimeout(announceJoin, 300)
+
+// DM flows
+socket.on('dm-request', ({ fromName }) => {
+  if (!fromName) return
+  const accept = confirm(`${fromName} wants to chat privately. Accept?`)
+  if (accept) {
+    socket.emit('dm-accept', { fromName })
+  }
+})
+
+socket.on('dm-start', ({ roomId, with: withName }) => {
+  currentDM = { roomId, with: withName }
+  alert(`Private chat started with ${withName}`)
+})
+
+socket.on('dm-message', ({ roomId, message, fromName, dataTime }) => {
+  if (!message) return
+  addMessageToUI(false, { name: `[DM] ${fromName}`, message, dataTime })
+})
