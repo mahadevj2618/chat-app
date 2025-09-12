@@ -14,6 +14,7 @@ app.use(cors());
 const api = require('./routes/routes')
 const auth=require('./middleware/auth')
 app.use('/api', api)
+require('dotenv').config();
 
 
 app.get('/mchat', (req, res) => {
