@@ -1,4 +1,4 @@
-# msChat 💬
+# mChat 💬
 
 A simple real-time chat service built with **Express.js** and **Socket.IO**.  
 Supports rooms, events, and REST endpoints — a good starting point for a microservice chat system.
