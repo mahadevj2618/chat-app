@@ -24,9 +24,9 @@ Supports rooms, events, and REST endpoints — a good starting point for a micro
 ## 📸 Screenshot
 <img width="100" height="50" alt="Screenshot 2025-09-17 124902" src="https://github.com/user-attachments/assets/b2d1380e-3707-450d-8f29-87ad79c6e57e" />
 <img width="100" height="100" alt="Screenshot 2025-09-17 124746" src="https://github.com/user-attachments/assets/254a31a4-ea2a-44b3-8942-5292a37ae32f" />
-<img width="651" height="892" alt="Screenshot 2025-09-17 124814" src="https://github.com/user-attachments/assets/7a177419-177e-463b-91c0-2cf0adc7dfa0" />
-<img width="1422" height="845" alt="Screenshot 2025-09-17 125003" src="https://github.com/user-attachments/assets/db5e8c05-effd-4d9b-8f5f-ae242c4779b2" />
-<img width="1848" height="855" alt="Screenshot 2025-09-09 172521" src="https://github.com/user-attachments/assets/a0e5a886-2321-4c5c-886a-6b4ef1f17137" />
+<img width="75" height="100" alt="Screenshot 2025-09-17 124814" src="https://github.com/user-attachments/assets/7a177419-177e-463b-91c0-2cf0adc7dfa0" />
+<img width="100" height="75" alt="Screenshot 2025-09-17 125003" src="https://github.com/user-attachments/assets/db5e8c05-effd-4d9b-8f5f-ae242c4779b2" />
+<img width="100" height="50" alt="Screenshot 2025-09-09 172521" src="https://github.com/user-attachments/assets/a0e5a886-2321-4c5c-886a-6b4ef1f17137" />
 
 
 
