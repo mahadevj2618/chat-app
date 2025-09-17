@@ -1,54 +1,44 @@
-const db = require('../db/database')
+// In-memory message store
 
-async function ensureSchema() {
-    // create tables if not exist
-    await db.query(`
-        CREATE TABLE IF NOT EXISTS chat_messages (
-            id BIGINT PRIMARY KEY AUTO_INCREMENT,
-            sender_name VARCHAR(100) NOT NULL,
-            message_text TEXT NOT NULL,
-            sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-    `)
+function createInMemoryMessageDL() {
+	const publicMessages = []
+	const directMessages = []
 
-    await db.query(`
-        CREATE TABLE IF NOT EXISTS direct_messages (
-            id BIGINT PRIMARY KEY AUTO_INCREMENT,
-            room_id VARCHAR(255) NOT NULL,
-            from_name VARCHAR(100) NOT NULL,
-            to_name VARCHAR(100) NOT NULL,
-            message_text TEXT NOT NULL,
-            sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_room_id (room_id)
-        );
-    `)
+	async function ensureSchema() {
+		// no-op for in-memory
+	}
+
+	async function insertPublicMessage({ senderName, messageText, sentAt }) {
+		publicMessages.push({
+			id: publicMessages.length + 1,
+			sender_name: senderName,
+			message_text: messageText,
+			sent_at: sentAt || new Date()
+		})
+	}
+
+	async function insertDirectMessage({ fromName, toName, roomId, messageText, sentAt }) {
+		directMessages.push({
+			id: directMessages.length + 1,
+			room_id: roomId,
+			from_name: fromName,
+			to_name: toName,
+			message_text: messageText,
+			sent_at: sentAt || new Date()
+		})
+	}
+
+	async function getPublicMessages(limit = 200) {
+		return publicMessages.slice(-limit).sort((a, b) => b.sent_at - a.sent_at)
+	}
+
+	async function getDirectMessages(limit = 200) {
+		return directMessages.slice(-limit).sort((a, b) => b.sent_at - a.sent_at)
+	}
+
+	return { ensureSchema, insertPublicMessage, insertDirectMessage, getPublicMessages, getDirectMessages }
 }
 
-async function insertPublicMessage({ senderName, messageText }) {
-    const sql = `INSERT INTO chat_messages (sender_name, message_text) VALUES (?, ?)`
-    const params = [senderName, messageText]
-    await db.query(sql, params)
-}
-
-async function insertDirectMessage({ fromName, toName, roomId, messageText }) {
-    const sql = `INSERT INTO direct_messages (room_id, from_name, to_name, message_text) VALUES (?, ?, ?, ?)`
-    const params = [roomId, fromName, toName, messageText]
-    await db.query(sql, params)
-}
-
-module.exports = { ensureSchema, insertPublicMessage, insertDirectMessage }
-
-async function getPublicMessages(limit = 200) {
-    const [rows] = await db.query(`SELECT id, sender_name, message_text, sent_at FROM chat_messages ORDER BY sent_at DESC LIMIT ?`, [limit])
-    return rows
-}
-
-async function getDirectMessages(limit = 200) {
-    const [rows] = await db.query(`SELECT id, room_id, from_name, to_name, message_text, sent_at FROM direct_messages ORDER BY sent_at DESC LIMIT ?`, [limit])
-    return rows
-}
-
-module.exports.getPublicMessages = getPublicMessages
-module.exports.getDirectMessages = getDirectMessages
+module.exports = createInMemoryMessageDL()
 
 

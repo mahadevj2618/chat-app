@@ -36,7 +36,7 @@ const adminSocketIds = new Set()
 const onlineNames = new Set()
 cnsp = io.of('/mchat');
 
-// ensure DB tables for messages exist
+// initialize message storage (no-op in memory)
 messageBL.ensureSchema().catch((e) => console.error('Schema init error:', e.message))
 
 cnsp.on('connection', onConnected)
