@@ -17,7 +17,7 @@ Supports rooms, events, and REST endpoints — a good starting point for a micro
 ---
 
 ## 🌍 Live Demo
-👉 [msChat on Render](https://mschat-ql9t.onrender.com/)
+👉 [mChat on Render](https://mschat-ql9t.onrender.com/)
 
 ---
 
