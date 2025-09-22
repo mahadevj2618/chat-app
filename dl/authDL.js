@@ -1,56 +1,127 @@
 const bcrypt = require('bcrypt')
+const { getDatabase } = require('../db/database')
 
-function createInMemoryAuthDL() {
-	// In-memory user list. Not persisted across restarts.
-	const users = []
-	let nextId = 1
+function createAuthDL() {
+	async function ensureSchema() {
+		try {
+			const db = await getDatabase()
+			
+			// Create indexes for users collection
+			await db.collection('users').createIndex({ user_email: 1 }, { unique: true })
+			await db.collection('users').createIndex({ user_id: 1 }, { unique: true, sparse: true })
+			await db.collection('users').createIndex({ created_at: -1 })
+			
+			console.log('MongoDB users collection and indexes created successfully')
+		} catch (error) {
+			console.error('Error creating users collection:', error)
+			throw error
+		}
+	}
 
 	async function readUser() {
-		// return shallow copy to avoid external mutation
-		return users.slice()
+		try {
+			const db = await getDatabase()
+			const users = await db.collection('users')
+				.find({})
+				.sort({ created_at: -1 })
+				.toArray()
+			return users
+		} catch (error) {
+			console.error('Error reading users:', error)
+			return []
+		}
 	}
 
 	async function createUser(user) {
-		// ensure email unique
-		const existing = users.find(u => u.user_email === user.user_email)
-		if (existing) {
-			const err = new Error('Email already registered')
-			err.code = 'EMAIL_EXISTS'
-			throw err
+		try {
+			const db = await getDatabase()
+			
+			// Check if email already exists
+			const existing = await db.collection('users').findOne({
+				user_email: user.user_email
+			})
+			
+			if (existing) {
+				const err = new Error('Email already registered')
+				err.code = 'EMAIL_EXISTS'
+				throw err
+			}
+
+			// Insert new user
+			const result = await db.collection('users').insertOne({
+				user_name: user.user_name,
+				user_email: user.user_email,
+				user_phone: user.user_phone,
+				password: user.password,
+				user_address: user.user_address,
+				admin: user.admin || 0,
+				created_at: new Date()
+			})
+
+			return { insertId: result.insertedId }
+		} catch (error) {
+			console.error('Error creating user:', error)
+			throw error
 		}
-		const toInsert = {
-			id: nextId++,
-			user_id: undefined,
-			user_name: user.user_name,
-			user_email: user.user_email,
-			user_phone: user.user_phone,
-			password: user.password, // already hashed by BL
-			user_address: user.user_address,
-			admin: user.admin === 1 ? 1 : 0,
-		}
-		users.push(toInsert)
-		return { insertId: toInsert.id }
 	}
 
 	async function findByMail(obj) {
-		const email = obj.user_email
-		return users.find(u => u.user_email === email) || null
+		try {
+			const db = await getDatabase()
+			const user = await db.collection('users').findOne({
+				user_email: obj.user_email
+			})
+			return user
+		} catch (error) {
+			console.error('Error finding user by email:', error)
+			return null
+		}
 	}
 
-	// Optionally seed an admin user if env vars provided (password hashed here)
+	async function deleteUser(userId) {
+		try {
+			const db = await getDatabase()
+			const result = await db.collection('users').deleteOne({
+				_id: userId
+			})
+			return result
+		} catch (error) {
+			console.error('Error deleting user:', error)
+			throw error
+		}
+	}
+
+	// Initialize schema and seed admin user
 	;(async () => {
 		try {
+			await ensureSchema()
+			
+			// Seed admin user if env vars provided
 			const seedEmail = process.env.SEED_ADMIN_EMAIL
 			const seedPass = process.env.SEED_ADMIN_PASSWORD
 			const seedName = process.env.SEED_ADMIN_NAME || 'Admin'
-			if (seedEmail && seedPass && !users.find(u => u.user_email === seedEmail)) {
-				const hashed = await bcrypt.hash(seedPass, 10)
-				await createUser({ user_name: seedName, user_email: seedEmail, user_phone: '', password: hashed, user_address: '', admin: 1 })
+			
+			if (seedEmail && seedPass) {
+				const existing = await findByMail({ user_email: seedEmail })
+				if (!existing) {
+					const hashed = await bcrypt.hash(seedPass, 10)
+					await createUser({ 
+						user_name: seedName, 
+						user_email: seedEmail, 
+						user_phone: '', 
+						password: hashed, 
+						user_address: '', 
+						admin: 1 
+					})
+					console.log('Admin user seeded successfully')
+				}
 			}
-		} catch (_) { /* ignore seed errors */ }
+		} catch (error) {
+			console.error('Error initializing auth schema:', error)
+		}
 	})()
 
-	return { readUser, createUser, findByMail }
+	return { readUser, createUser, findByMail, deleteUser, ensureSchema }
 }
 
-module.exports = createInMemoryAuthDL()
+module.exports = createAuthDL()

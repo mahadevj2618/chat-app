@@ -74,7 +74,31 @@ router.get('/admin/messages/direct', auth.verify, async function (req, res) {
     res.status(200).send({ status: 'success', data: rows })
 })
 
-
-
+// admin-only: delete user
+router.delete('/admin/user/:userId', auth.verify, async function (req, res) {
+    try {
+        if (!req.user || req.user.admin !== 1) {
+            return res.status(403).send({ status: 'error', message: 'Forbidden' })
+        }
+        
+        const { userId } = req.params
+        if (!userId) {
+            return res.status(400).send({ status: 'error', message: 'User ID is required' })
+        }
+        
+        const response = await authBL.deleteUser(userId)
+        if (response.status === 'success') {
+            res.status(200).send(response)
+        } else {
+            res.status(400).send(response)
+        }
+    } catch (err) {
+        res.status(500).send({
+            status: 'error',
+            message: 'Internal server error',
+            error: err.message
+        })
+    }
+})
 
 module.exports = router

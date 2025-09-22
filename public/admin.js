@@ -9,10 +9,12 @@ const usersList = document.getElementById('admin-users-list')
 
 const kickBtn = document.getElementById('kick-user')
 const muteBtn = document.getElementById('mute-user')
+const deleteBtn = document.getElementById('delete-user')
 const broadcastBtn = document.getElementById('broadcast-msg')
 
 // Track selected user for admin actions
 let selectedUser = null
+let selectedUserId = null
 
 // Fetch all users and display in sidebar
 async function fetchUsers() {
@@ -40,10 +42,11 @@ function renderUsers(users) {
         <span class="w-2 h-2 ${user.online ? 'bg-green-400' : 'bg-gray-400'} rounded-full"></span> 
         ${user.user_name}
       </span>
-      <input type="radio" name="selected-user" value="${user.user_name}" />
+      <input type="radio" name="selected-user" value="${user.user_name}" data-user-id="${user._id}" />
     `
     li.querySelector('input').addEventListener('change', () => {
       selectedUser = user.user_name
+      selectedUserId = user._id
     })
     usersList.appendChild(li)
   })
@@ -145,6 +148,44 @@ broadcastBtn.addEventListener('click', () => {
   if (!message) return
   socket.emit('admin-action', { type: 'broadcast', message })
   addMessageToUI(true, { name: 'Admin', message, dataTime: new Date() })
+})
+
+deleteBtn.addEventListener('click', async () => {
+  if (!selectedUser || !selectedUserId) return alert('Select a user first!')
+  
+  const confirmDelete = confirm(`Are you sure you want to DELETE user "${selectedUser}"? This action cannot be undone!`)
+  if (!confirmDelete) return
+  
+  try {
+    const token = localStorage.getItem('token')
+    const response = await fetch(`/api/auth/admin/user/${selectedUserId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    const result = await response.json()
+    
+    if (result.status === 'success') {
+      alert(`User "${selectedUser}" has been deleted successfully`)
+      // Refresh the users list
+      fetchUsers()
+      // Clear selection
+      selectedUser = null
+      selectedUserId = null
+      // Uncheck all radio buttons
+      document.querySelectorAll('input[name="selected-user"]').forEach(radio => {
+        radio.checked = false
+      })
+    } else {
+      alert(`Failed to delete user: ${result.message}`)
+    }
+  } catch (error) {
+    console.error('Error deleting user:', error)
+    alert('Error deleting user. Please try again.')
+  }
 })
 
 // Fetch users initially

@@ -99,6 +99,32 @@ function obj() {
     return response;
 };
 
+    this.deleteUser = async function (userId) {
+        let response = {};
+        try {
+            const result = await authDL.deleteUser(userId);
+            if (result.deletedCount === 1) {
+                response = {
+                    status: "success",
+                    message: "User deleted successfully",
+                    data: result
+                };
+            } else {
+                response = {
+                    status: "error",
+                    message: "User not found or already deleted"
+                };
+            }
+        } catch (error) {
+            response = {
+                status: "error",
+                message: "Failed to delete user",
+                error: error.message
+            };
+        }
+        return response;
+    };
+
 
 
 

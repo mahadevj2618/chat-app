@@ -27,6 +27,8 @@ const server = app.listen(PORT, () => {
 
 const io = require('socket.io')(server)
 const messageBL = require('./bl/messageBL')
+const authDL = require('./dl/authDL')
+const { connectToDatabase } = require('./db/database')
 
 let socketsConected = new Set()
 const mutedUsers = new Set()
@@ -36,8 +38,21 @@ const adminSocketIds = new Set()
 const onlineNames = new Set()
 cnsp = io.of('/mchat');
 
-// initialize message storage (no-op in memory)
-messageBL.ensureSchema().catch((e) => console.error('Schema init error:', e.message))
+// initialize MongoDB connection and schemas
+async function initializeDatabase() {
+    try {
+        await connectToDatabase()
+        await Promise.all([
+            messageBL.ensureSchema(),
+            authDL.ensureSchema()
+        ])
+        console.log('MongoDB database and schemas initialized successfully')
+    } catch (error) {
+        console.error('Database initialization error:', error.message)
+    }
+}
+
+initializeDatabase()
 
 cnsp.on('connection', onConnected)
 
